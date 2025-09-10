@@ -10,9 +10,21 @@ if ($conn->connect_error) {
     die("Koneksi gagal: " . $conn->connect_error);
 }
 
+
 // Routing
 $page = $_GET['page'] ?? 'home';
-$allowed_pages = ['home', 'pegawai', 'pegawai_form', 'pegawai_detail', 'keluarga_asuh', 'penerima_bantuan', 'umkm'];
+$allowed_pages = [
+    'home', 
+    'pegawai', 
+    'pegawai_form', 
+    'pegawai_detail', 
+    'keluarga_asuh', 
+    'penerima_bantuan', 
+    'umkm', 
+    'umkm_form',
+    'umkm_detail'
+];
+
 
 if (!file_exists($page . '.php')) {
     echo "<h3 style='text-align:center; padding:20px;'>Halaman tidak ditemukan</h3>";

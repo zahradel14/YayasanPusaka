@@ -15,7 +15,7 @@ while ($w = $wilayahRes->fetch_assoc()) {
 
 // Cek filter wilayah & pencarian
 $filterWilayah = $_GET['wilayah'] ?? '';
-$cari = trim($_GET['cari'] ?? '');
+$cari          = trim($_GET['cari'] ?? '');
 
 // Base SQL
 $sql = "
@@ -49,8 +49,10 @@ $totalAll = $conn->query("SELECT COUNT(*) AS jml FROM keluarga_asuh")->fetch_ass
 $totalFiltered = $keluarga_asuh ? $keluarga_asuh->num_rows : 0;
 ?>
 
-<div class="table-container">
-    <div style="margin-bottom: 15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+<div class="table-actions" style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    
+    <!-- Kiri: Tombol tambah, export, import -->
+    <div style="display:flex; gap:10px; align-items:center;">
         <!-- Tombol Tambah -->
         <a href="index.php?page=keluarga_asuh_form" 
            style="background-color:#2e59d9; color:white; padding:10px 15px; 
@@ -58,36 +60,57 @@ $totalFiltered = $keluarga_asuh ? $keluarga_asuh->num_rows : 0;
             + Tambah Keluarga Asuh
         </a>
 
-        <!-- Filter & Pencarian -->
-        <form method="get" style="margin:0; display:flex; gap:10px; align-items:center;">
-            <input type="hidden" name="page" value="keluarga_asuh">
+        <!-- Tombol Export -->
+        <a href="export_keluarga_asuh.php"
+           style="background:#28a745; color:#fff; padding:10px 15px;
+                  border-radius:6px; text-decoration:none; font-weight:bold;">
+            ⬇ Export Excel
+        </a>
 
-            <!-- Dropdown wilayah -->
-            <select name="wilayah" onchange="this.form.submit()">
-                <option value="">-- Semua Wilayah --</option>
-                <?php foreach ($wilayahList as $w): ?>
-                    <option value="<?= htmlspecialchars($w) ?>" <?= $w===$filterWilayah?'selected':'' ?>>
-                        <?= htmlspecialchars($w) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-
-            <!-- Input pencarian -->
-            <input type="text" name="cari" placeholder="Cari Nama Alm. / Ibu" 
-                   value="<?= htmlspecialchars($cari) ?>" style="padding:6px; border:1px solid #ccc; border-radius:4px;">
-
-            <button type="submit" 
-                    style="padding:6px 12px; background:#2e59d9; color:#fff; border:none; border-radius:4px; cursor:pointer;">
-                Cari
+        <!-- Form Import -->
+        <form action="import_keluarga_asuh.php" method="post" enctype="multipart/form-data" 
+              style="display:flex; gap:5px; align-items:center;">
+            <input type="file" name="file_excel" accept=".csv,.xls,.xlsx" required
+                   style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+            <button type="submit"
+                    style="background:#17a2b8; color:#fff; padding:10px 15px;
+                           border-radius:6px; border:none; cursor:pointer;">
+                ⬆ Import
             </button>
-
-            <!-- Tombol reset -->
-            <a href="index.php?page=keluarga_asuh" 
-               style="padding:6px 12px; background:#6c757d; color:#fff; border-radius:4px; text-decoration:none;">
-                Reset
-            </a>
         </form>
     </div>
+
+    <!-- Kanan: Filter & Pencarian -->
+    <form method="get" style="margin:0; display:flex; gap:10px; align-items:center;">
+        <input type="hidden" name="page" value="keluarga_asuh">
+
+        <!-- Dropdown wilayah -->
+        <select name="wilayah" onchange="this.form.submit()">
+            <option value="">-- Semua Wilayah --</option>
+            <?php foreach ($wilayahList as $w): ?>
+                <option value="<?= htmlspecialchars($w) ?>" <?= $w===$filterWilayah?'selected':'' ?>>
+                    <?= htmlspecialchars($w) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+
+        <!-- Input pencarian -->
+        <input type="text" name="cari" placeholder="Cari Nama Alm. / Ibu" 
+               value="<?= htmlspecialchars($cari) ?>" 
+               style="padding:6px; border:1px solid #ccc; border-radius:4px;">
+
+        <button type="submit" 
+                style="padding:6px 12px; background:#2e59d9; color:#fff; border:none; border-radius:4px; cursor:pointer;">
+            Cari
+        </button>
+
+        <!-- Tombol reset -->
+        <a href="index.php?page=keluarga_asuh" 
+           style="padding:6px 12px; background:#6c757d; color:#fff; border-radius:4px; text-decoration:none;">
+            Reset
+        </a>
+    </form>
+</div>
 
     <!-- Info jumlah hasil -->
     <p style="margin:10px 0; font-size:14px; color:#555;">
@@ -108,7 +131,7 @@ $totalFiltered = $keluarga_asuh ? $keluarga_asuh->num_rows : 0;
                 <th>Penyebab Meninggal</th>
                 <th>Wilayah</th>
                 <th>Nama Ibu</th>
-                <th>TTL Ibu</th>
+                <th>Pekerjaan Ibu</th>
                 <th>No. Telp</th>
                 <th>Alamat</th>
                 <th>Total Anak</th>
@@ -127,7 +150,7 @@ $totalFiltered = $keluarga_asuh ? $keluarga_asuh->num_rows : 0;
                     <td><?= htmlspecialchars($row['penyebab_meninggal']) ?></td>
                     <td><?= htmlspecialchars($row['wilayah']) ?></td>
                     <td><?= htmlspecialchars($row['nama_ibu']) ?></td>
-                    <td><?= htmlspecialchars($row['ttl_ibu']) ?></td>
+                    <td><?= htmlspecialchars($row['pekerjaan_ibu']) ?></td>
                     <td><?= htmlspecialchars($row['no_telp']) ?></td>
                     <td>
                         <?= htmlspecialchars($row['alamat']) ?>,
@@ -141,7 +164,9 @@ $totalFiltered = $keluarga_asuh ? $keluarga_asuh->num_rows : 0;
                     <td>
                         <a href="index.php?page=keluarga_asuh_detail&id=<?= $row['id'] ?>" style="color: green;">Detail</a> |
                         <a href="index.php?page=keluarga_asuh_form&id=<?= $row['id'] ?>" style="color: #007bff;">Edit</a> |
-                        <a href="index.php?page=keluarga_asuh&delete=<?= $row['id'] ?>" onclick="return confirm('Yakin ingin menghapus data ini?')" style="color: red;">Hapus</a>
+                        <a href="index.php?page=keluarga_asuh&delete=<?= $row['id'] ?>" 
+                           onclick="return confirm('Yakin ingin menghapus data ini?')" 
+                           style="color: red;">Hapus</a>
                     </td>
                 </tr>
             <?php endwhile; ?>

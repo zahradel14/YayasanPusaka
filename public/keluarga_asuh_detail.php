@@ -37,7 +37,7 @@ $anak = $conn->query("SELECT * FROM anak_asuh WHERE keluarga_asuh_id = $id")->fe
             <h3>Data Ibu</h3>
             <div class="detail-grid">
                 <div><strong>Nama Ibu:</strong> <?= htmlspecialchars($keluarga['nama_ibu']) ?></div>
-                <div><strong>TTL Ibu:</strong> <?= htmlspecialchars($keluarga['ttl_ibu']) ?></div>
+                <div><strong>Pekerjaan Ibu:</strong> <?= htmlspecialchars($keluarga['pekerjaan_ibu']) ?></div>
                 <div><strong>No. Telp:</strong> <?= htmlspecialchars($keluarga['no_telp']) ?></div>
                 <div><strong>Alamat:</strong> 
                     <?= htmlspecialchars($keluarga['alamat']) ?>,

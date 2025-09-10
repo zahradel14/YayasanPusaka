@@ -4,19 +4,19 @@ $edit = false;
 
 if ($id) {
     $edit = true;
-    $res = $conn->query("SELECT * FROM keluarga_asuh WHERE id = ".(int)$id);
+    $res = $conn->query("SELECT * FROM keluarga_asuh WHERE id = " . (int)$id);
     $keluarga = $res->fetch_assoc();
 
-    $anakRes = $conn->query("SELECT * FROM anak_asuh WHERE keluarga_asuh_id = ".(int)$id." ORDER BY id ASC");
+    $anakRes = $conn->query("SELECT * FROM anak_asuh WHERE keluarga_asuh_id = " . (int)$id . " ORDER BY id ASC");
     $anakList = $anakRes->fetch_all(MYSQLI_ASSOC);
 }
 
-// Simpan
+// Simpan data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conn->begin_transaction(); // MULAI TRANSACTION
+    $conn->begin_transaction();
 
     try {
-        // --- Keluarga asuh ---
+        // --- Data keluarga ---
         $nip_alm    = $_POST['nip_alm'] ?? '';
         $nama_alm   = $_POST['nama_alm_pegawai'] ?? '';
         $jabatan    = $_POST['jabatan_terakhir'] ?? '';
@@ -24,9 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $penyebab   = $_POST['penyebab_meninggal'] ?? '';
         $wilayah    = $_POST['wilayah'] ?? '';
         $nama_ibu   = $_POST['nama_ibu'] ?? '';
-        $ttl_ibu    = $_POST['ttl_ibu'] ?? '';
-        $nik        = $_POST['nik'] ?? '';
-        $pekerjaan  = $_POST['pekerjaan'] ?? '';
+        $ttl_ibu    = $_POST['pekerjaan_ibu'] ?? '';
         $alamat     = $_POST['alamat'] ?? '';
         $kelurahan  = $_POST['kelurahan'] ?? '';
         $kecamatan  = $_POST['kecamatan'] ?? '';
@@ -34,72 +32,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $no_telp    = $_POST['no_telp'] ?? '';
         $catatan    = $_POST['catatan'] ?? '';
 
-        // --- Anak (array) ---
-        $anak_nama     = $_POST['anak_nama'] ?? [];
-        $anak_ttl      = $_POST['anak_ttl'] ?? [];
-        $anak_jenjang  = $_POST['anak_jenjang'] ?? [];
-        $anak_sekolah  = $_POST['anak_sekolah'] ?? [];
-        $anak_status   = $_POST['anak_status'] ?? [];
+        // --- Data anak (array) ---
+        $nama_anak   = $_POST['nama_anak'] ?? [];
+        $ttl_anak    = $_POST['ttl_anak'] ?? [];
+        $jenjang     = $_POST['jenjang'] ?? [];
+        $sekolah     = $_POST['sekolah'] ?? [];
+        $status_tg   = $_POST['status_tanggungan'] ?? [];
 
         if ($edit) {
             $stmt = $conn->prepare("UPDATE keluarga_asuh SET 
                 nip_alm=?, nama_alm_pegawai=?, jabatan_terakhir=?, meninggal_tewas=?, penyebab_meninggal=?, wilayah=?,
-                nama_ibu=?, ttl_ibu=?, nik=?, pekerjaan=?, alamat=?, kelurahan=?, kecamatan=?, kota=?, no_telp=?, catatan=?
+                nama_ibu=?, pekerjaan_ibu=?, pekerjaan=?, alamat=?, kelurahan=?, kecamatan=?, kota=?, no_telp=?, catatan=?
                 WHERE id=?");
             $stmt->bind_param(
-                "ssssssssssssssssi",
+                "sssssssssssssssi",
                 $nip_alm, $nama_alm, $jabatan, $meninggal, $penyebab, $wilayah,
-                $nama_ibu, $ttl_ibu, $nik, $pekerjaan, $alamat, $kelurahan, $kecamatan, $kota, $no_telp, $catatan,
+                $nama_ibu, $ttl_ibu, $pekerjaan, $alamat, $kelurahan, $kecamatan, $kota, $no_telp, $catatan,
                 $id
             );
             $stmt->execute();
 
-            $conn->query("DELETE FROM anak_asuh WHERE keluarga_asuh_id=".(int)$id);
+            $conn->query("DELETE FROM anak_asuh WHERE keluarga_asuh_id=" . (int)$id);
             $keluarga_id = (int)$id;
         } else {
             $stmt = $conn->prepare("INSERT INTO keluarga_asuh
                 (nip_alm, nama_alm_pegawai, jabatan_terakhir, meninggal_tewas, penyebab_meninggal, wilayah,
-                 nama_ibu, ttl_ibu, nik, pekerjaan, alamat, kelurahan, kecamatan, kota, no_telp, catatan, created_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW())");
+                nama_ibu, pekerjaan_ibu, pekerjaan, alamat, kelurahan, kecamatan, kota, no_telp, catatan, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW())");
             $stmt->bind_param(
-                "ssssssssssssssss",
+                "sssssssssssssss",
                 $nip_alm, $nama_alm, $jabatan, $meninggal, $penyebab, $wilayah,
-                $nama_ibu, $ttl_ibu, $nik, $pekerjaan, $alamat, $kelurahan, $kecamatan, $kota, $no_telp, $catatan
+                $nama_ibu, $ttl_ibu, $pekerjaan, $alamat, $kelurahan, $kecamatan, $kota, $no_telp, $catatan
             );
             $stmt->execute();
             $keluarga_id = $conn->insert_id;
         }
 
-        // Insert anak dengan validasi opsi
+        // --- Insert anak ---
         $validJenjang = ['SD','SMP','SMA/SMK','D3','S1'];
         $validStatus  = ['Aktif','Lulus','Nonaktif'];
 
-        if (!empty($anak_nama)) {
+        if (!empty($nama_anak)) {
             $stmtAnak = $conn->prepare("INSERT INTO anak_asuh
                 (keluarga_asuh_id, nama_anak, ttl_anak, jenjang, sekolah, status_tanggungan)
                 VALUES (?,?,?,?,?,?)");
 
-            foreach ($anak_nama as $i => $nm) {
+            foreach ($nama_anak as $i => $nm) {
                 $nm = trim($nm ?? '');
                 if ($nm === '') continue;
 
-                $ttl     = trim($anak_ttl[$i] ?? '');
-                $jenjang = in_array($anak_jenjang[$i] ?? '', $validJenjang) ? $anak_jenjang[$i] : 'SD';
-                $sekolah = trim($anak_sekolah[$i] ?? '');
-                $status  = in_array($anak_status[$i] ?? '', $validStatus) ? $anak_status[$i] : 'Aktif';
+                $ttl   = trim($ttl_anak[$i] ?? '');
+                $jenj  = in_array($jenjang[$i] ?? '', $validJenjang) ? $jenjang[$i] : 'SD';
+                $sekol = trim($sekolah[$i] ?? '');
+                $stat  = in_array($status_tg[$i] ?? '', $validStatus) ? $status_tg[$i] : 'Aktif';
 
-                $stmtAnak->bind_param("isssss", $keluarga_id, $nm, $ttl, $jenjang, $sekolah, $status);
+                $stmtAnak->bind_param("isssss", $keluarga_id, $nm, $ttl, $jenj, $sekol, $stat);
                 $stmtAnak->execute();
             }
         }
 
-        $conn->commit(); // SELESAI
+        $conn->commit();
         echo "<script>alert('Data keluarga & anak berhasil disimpan!');location.href='index.php?page=keluarga_asuh';</script>";
         exit;
 
     } catch (Exception $e) {
-        $conn->rollback(); // BATALKAN SEMUA
-        echo "<script>alert('Terjadi kesalahan saat menyimpan data: ".addslashes($e->getMessage())."');</script>";
+        $conn->rollback();
+        echo "<script>alert('Terjadi kesalahan saat menyimpan data: " . addslashes($e->getMessage()) . "');</script>";
     }
 }
 ?>
@@ -117,10 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div><label>Jabatan Terakhir:</label><input type="text" name="jabatan_terakhir" value="<?= $keluarga['jabatan_terakhir'] ?? '' ?>"></div>
           <div><label>Meninggal/Tewas:</label>
             <select name="meninggal_tewas">
-            <option <?= ($keluarga['meninggal_tewas']??'')=='Meninggal'?'selected':'' ?>>Meninggal</option>
-            <option <?= ($keluarga['meninggal_tewas']??'')=='Tewas'?'selected':'' ?>>Tewas</option>
+              <option <?= ($keluarga['meninggal_tewas']??'')=='Meninggal'?'selected':'' ?>>Meninggal</option>
+              <option <?= ($keluarga['meninggal_tewas']??'')=='Tewas'?'selected':'' ?>>Tewas</option>
             </select>
-        </div>
+          </div>
           <div><label>Penyebab Meninggal:</label><input type="text" name="penyebab_meninggal" value="<?= $keluarga['penyebab_meninggal'] ?? '' ?>"></div>
           <div><label>Wilayah:</label><input type="text" name="wilayah" value="<?= $keluarga['wilayah'] ?? '' ?>"></div>
         </div>
@@ -129,9 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-section">
           <div class="section-header"><h3>2. Data Ibu / Wali</h3></div>
           <div><label>Nama Ibu:</label><input type="text" name="nama_ibu" value="<?= $keluarga['nama_ibu'] ?? '' ?>"></div>
-          <div><label>TTL Ibu:</label><input type="text" name="ttl_ibu" placeholder="Kota, DD-MM-YYYY" value="<?= $keluarga['ttl_ibu'] ?? '' ?>"></div>
-          <div><label>NIK:</label><input type="text" name="nik" value="<?= $keluarga['nik'] ?? '' ?>"></div>
-          <div><label>Pekerjaan:</label><input type="text" name="pekerjaan" value="<?= $keluarga['pekerjaan'] ?? '' ?>"></div>
+          <div><label>Pekerjaan Ibu:</label><input type="text" name="pekerjaan_ibu" value="<?= $keluarga['pekerjaan_ibu'] ?? '' ?>"></div>
           <div><label>No. Telp:</label><input type="text" name="no_telp" value="<?= $keluarga['no_telp'] ?? '' ?>"></div>
         </div>
       </div>
@@ -152,55 +148,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-grid">
         <div class="card-section" style="grid-column:1/-1">
           <div class="section-header"><h3>4. Data Anak</h3></div>
-
           <div id="anak-container">
-                        <?php
-                        if (!empty($anakList)) {
-                            $i = 1;
-                            foreach ($anakList as $anak) {
-                                echo '<div class="anak-row">
-                                    <label>Anak ke-' . $i++ . '</label>
-                                    <input type="text" name="nama_anak[]" placeholder="Nama Anak" value="' . htmlspecialchars($anak['nama_anak']) . '" />
-                                    <input type="text" name="ttl_anak[]" placeholder="Tempat, Tgl Lahir" value="' . htmlspecialchars($anak['ttl_anak']) . '" />
-                                    <input type="text" name="jenjang[]" placeholder="Jenjang (SD/SMP/SMA/S1)" value="' . htmlspecialchars($anak['jenjang']) . '" />
-                                    <input type="text" name="sekolah[]" placeholder="Sekolah" value="' . htmlspecialchars($anak['sekolah']) . '" />
-                                    <select name="status_tanggungan[]">
-                                        <option ' . ($anak['status_tanggungan']=='Aktif'?'selected':'') . '>Aktif</option>
-                                        <option ' . ($anak['status_tanggungan']=='Lulus'?'selected':'') . '>Lulus</option>
-                                        <option ' . ($anak['status_tanggungan']=='Nonaktif'?'selected':'') . '>Nonaktif</option>
-                                    </select>
-                                    <button type="button" class="btn-remove" onclick="hapusAnak(this)">✖</button>
-                                </div>';
-                            }
-                        } else {
-                            echo '<div class="anak-row">
-                                <label>Anak ke-1</label>
-                                <input type="text" name="nama_anak[]" placeholder="Nama Anak" />
-                                <input type="text" name="ttl_anak[]" placeholder="Tempat, Tgl Lahir" />
-                                <input type="text" name="jenjang[]" placeholder="Jenjang (SD/SMP/SMA/S1)" />
-                                <input type="text" name="sekolah[]" placeholder="Sekolah" />
-                                <select name="status_tanggungan[]">
-                                    <option>Aktif</option>
-                                    <option>Lulus</option>
-                                    <option>Nonaktif</option>
-                                </select>
-                                <button type="button" class="btn-remove" onclick="hapusAnak(this)">✖</button>
-                            </div>';
-                        }
-                        ?>
-                    </div>
-                    <div style="margin-top:10px;">
-                        <button type="button" class="btn-small" onclick="tambahAnak()">+ Tambah Anak</button>
-                    </div>
-                </div>
-            </div>
+            <?php
+            if (!empty($anakList)) {
+                $i = 1;
+                foreach ($anakList as $anak) {
+                    echo '<div class="anak-row">
+                        <label>Anak ke-' . $i++ . '</label>
+                        <input type="text" name="nama_anak[]" placeholder="Nama Anak" value="' . htmlspecialchars($anak['nama_anak']) . '" />
+                        <input type="text" name="ttl_anak[]" placeholder="Tempat, Tgl Lahir" value="' . htmlspecialchars($anak['ttl_anak']) . '" />
+                        <input type="text" name="jenjang[]" placeholder="Jenjang (SD/SMP/SMA/S1)" value="' . htmlspecialchars($anak['jenjang']) . '" />
+                        <input type="text" name="sekolah[]" placeholder="Sekolah" value="' . htmlspecialchars($anak['sekolah']) . '" />
+                        <select name="status_tanggungan[]">
+                            <option ' . ($anak['status_tanggungan']=='Aktif'?'selected':'') . '>Aktif</option>
+                            <option ' . ($anak['status_tanggungan']=='Lulus'?'selected':'') . '>Lulus</option>
+                            <option ' . ($anak['status_tanggungan']=='Nonaktif'?'selected':'') . '>Nonaktif</option>
+                        </select>
+                        <button type="button" class="btn-remove" onclick="hapusAnak(this)">✖</button>
+                    </div>';
+                }
+            } else {
+                echo '<div class="anak-row">
+                    <label>Anak ke-1</label>
+                    <input type="text" name="nama_anak[]" placeholder="Nama Anak" />
+                    <input type="text" name="ttl_anak[]" placeholder="Tempat, Tgl Lahir" />
+                    <input type="text" name="jenjang[]" placeholder="Jenjang (SD/SMP/SMA/S1)" />
+                    <input type="text" name="sekolah[]" placeholder="Sekolah" />
+                    <select name="status_tanggungan[]">
+                        <option>Aktif</option>
+                        <option>Lulus</option>
+                        <option>Nonaktif</option>
+                    </select>
+                    <button type="button" class="btn-remove" onclick="hapusAnak(this)">✖</button>
+                </div>';
+            }
+            ?>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn-small" onclick="tambahAnak()">+ Tambah Anak</button>
+          </div>
+        </div>
+      </div>
 
-            <div class="form-actions">
-                <button type="submit" class="btn-small">Simpan</button>
-                <a href="index.php?page=keluarga_asuh" class="btn-cancel">Batal</a>
-            </div>
-        </form>
-    </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-small">Simpan</button>
+        <a href="index.php?page=keluarga_asuh" class="btn-cancel">Batal</a>
+      </div>
+    </form>
+  </div>
 </section>
 
 <script>
@@ -225,6 +220,7 @@ function tambahAnak() {
     `;
     container.appendChild(row);
 }
+
 function hapusAnak(button) {
     button.closest('.anak-row').remove();
     const anakRows = document.querySelectorAll('#anak-container .anak-row');
@@ -256,7 +252,9 @@ input,select,textarea{width:100%;padding:8px 12px;border:1px solid #ccc;border-r
 .btn-remove:hover{background:#c0392b}
 @media (max-width: 900px){
   .form-grid{grid-template-columns:1fr}
-  .anak-row{grid-template-columns:1fr 1fr; }
-  .anak-row select, .anak-row input[name="anak_sekolah[]"], .anak-row select[name="anak_status[]"]{grid-column:1 / -1}
+  .anak-row{grid-template-columns:1fr 1fr;}
+  .anak-row select, 
+  .anak-row input[name="sekolah[]"], 
+  .anak-row select[name="status_tanggungan[]"]{grid-column:1 / -1}
 }
 </style>
